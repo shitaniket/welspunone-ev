@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, make_response
 import mysql.connector
 from mysql.connector import Error
 from dotenv import load_dotenv
@@ -47,8 +47,9 @@ def login():
         password = request.form['password']
 
         if username == 'admin' and password == 'password':
-            session['loggedin'] = True
-            return redirect(url_for('admin'))
+            resp = make_response(redirect(url_for('admin')))
+            resp.set_cookie('loggedin', 'true')
+            return resp
         else:
             return "Invalid credentials, please try again."
 
@@ -56,7 +57,7 @@ def login():
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
-    if 'loggedin' in session:
+    if request.cookies.get('loggedin') == 'true':
         if request.method == 'POST':
             action = request.form['action']
             vehicle_name = request.form.get('name')
@@ -105,8 +106,9 @@ def admin():
 
 @app.route('/logout')
 def logout():
-    session.pop('loggedin', None)
-    return redirect(url_for('index'))
+    resp = make_response(redirect(url_for('index')))
+    resp.set_cookie('loggedin', '', expires=0)
+    return resp
 
 if __name__ == '__main__':
     app.run(debug=True)

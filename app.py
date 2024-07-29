@@ -8,7 +8,6 @@ import os
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY')  # Set the secret key
 
 def get_db_connection():
     try:

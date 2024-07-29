@@ -24,20 +24,15 @@ def get_db_connection():
 
 @app.route('/')
 def index():
-    try:
-        conn = get_db_connection()
-        if conn:
-            cursor = conn.cursor()
-            cursor.execute('SELECT * FROM vehicles')
-            vehicles = cursor.fetchall()
-            conn.close()
-        else:
-            vehicles = []
-            print("Failed to connect to the database.")
-    except Exception as e:
-        print(f"Error retrieving data: {e}")
+    conn = get_db_connection()
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM vehicles')
+        vehicles = cursor.fetchall()
+        conn.close()
+    else:
         vehicles = []
-
+        print("Failed to connect to the database.")
     return render_template('index.html', vehicles=vehicles)
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -45,14 +40,12 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-
         if username == 'admin' and password == 'password':
             resp = make_response(redirect(url_for('admin')))
             resp.set_cookie('loggedin', 'true')
             return resp
         else:
             return "Invalid credentials, please try again."
-
     return render_template('login.html')
 
 @app.route('/admin', methods=['GET', 'POST'])
@@ -64,42 +57,31 @@ def admin():
             vehicle_id = request.form.get('id')
             vehicle_status = request.form.get('status')
 
-            try:
-                conn = get_db_connection()
-                if conn:
-                    cursor = conn.cursor()
-
-                    if action == 'add':
-                        cursor.execute('INSERT INTO vehicles (name, status) VALUES (%s, %s)', (vehicle_name, 'Available'))
-                    elif action == 'remove':
-                        cursor.execute('DELETE FROM vehicles WHERE id = %s', (vehicle_id,))
-                    elif action == 'change_status':
-                        cursor.execute('UPDATE vehicles SET status = %s WHERE id = %s', (vehicle_status, vehicle_id))
-
-                    conn.commit()
-                    conn.close()
-                else:
-                    print("Failed to connect to the database.")
-                
-            except Exception as e:
-                print(f"Error handling POST request: {e}")
-
-            return redirect(url_for('admin'))
-
-        try:
             conn = get_db_connection()
             if conn:
                 cursor = conn.cursor()
-                cursor.execute('SELECT * FROM vehicles')
-                vehicles = cursor.fetchall()
+                if action == 'add':
+                    cursor.execute('INSERT INTO vehicles (name, status) VALUES (%s, %s)', (vehicle_name, 'Available'))
+                elif action == 'remove':
+                    cursor.execute('DELETE FROM vehicles WHERE id = %s', (vehicle_id,))
+                elif action == 'change_status':
+                    cursor.execute('UPDATE vehicles SET status = %s WHERE id = %s', (vehicle_status, vehicle_id))
+                conn.commit()
                 conn.close()
             else:
-                vehicles = []
                 print("Failed to connect to the database.")
-        except Exception as e:
-            print(f"Error retrieving data: {e}")
-            vehicles = []
 
+            return redirect(url_for('admin'))
+
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM vehicles')
+            vehicles = cursor.fetchall()
+            conn.close()
+        else:
+            vehicles = []
+            print("Failed to connect to the database.")
         return render_template('admin.html', vehicles=vehicles)
     else:
         return redirect(url_for('login'))
